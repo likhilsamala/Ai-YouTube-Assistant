@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube AI Bot</title>
+    <style>
+        body {
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+h2 {
+    color: #555;
+    margin-top: 20px;
+}
+
+.chat-window {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 450px;
+    text-align: center;
+}
+
+input {
+    width: calc(100% - 20px);
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+#recommend-results, #download-link, #highlights {
+    margin-top: 15px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    font-size: 14px;
+    width: 100%;
+}
+
+.chat-messages {
+    height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 15px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    font-size: 14px;
+}
+
+.message {
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.user-message {
+    background-color: #007BFF;
+    color: white;
+    align-self: flex-end;
+}
+
+.bot-message {
+    background-color: #e9ecef;
+    color: #333;
+    align-self: flex-start;
+}
+
+/* Additional Styling */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin: 10px 0;
+    width: 100%;
+}
+
+.footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+}
+
+.loader {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top: 4px solid #007BFF;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+    .chat-window {
+        width: 100%;
+    }
+
+    .container {
+        width: 100%;
+    }
+}
+
+    </style>
+    <script>
+        async function recommendVideos() {
+            const query = document.getElementById("recommend-query").value;
+            if (!query) {
+                alert("Please enter a search query!");
+                return;
+            }
+
+            const response = await fetch("/recommend", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query }),
+            });
+
+            const data = await response.json();
+            if (data.recommendations) {
+                document.getElementById("recommend-results").innerHTML = data.recommendations.replace(/\n/g, "<br>");
+            } else {
+                alert(data.error || "No recommendations found.");
+            }
+        }
+
+        async function downloadVideo() {
+            const url = document.getElementById("video-url").value;
+            if (!url) {
+                alert("Please enter a video URL!");
+                return;
+            }
+
+            const response = await fetch("/download", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url }),
+            });
+
+            const data = await response.json();
+            if (data.file_url) {
+                document.getElementById("download-link").innerHTML = 
+                    `<a href="${data.file_url}" download>Download Video</a>`;
+            } else {
+                alert(data.error || "Download failed!");
+            }
+        }
+
+        async function generateHighlights() {
+    const url = document.getElementById("video-url").value;
+    if (!url) {
+        alert("Please enter a video URL!");
+        return;
+    }
+
+    document.getElementById("highlights").innerHTML = `<div class="loader"></div>`; // Show loading animation
+
+    const response = await fetch("/generate_highlights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+    });
+
+    const data = await response.json();
+
+    if (data.highlights) {
+        document.getElementById("highlights").innerHTML = 
+            `<h3>Key Highlights:</h3><ul>` + 
+            data.highlights.split("\n").map(h => `<li>${h}</li>`).join("") + 
+            `</ul>`;
+    } else {
+        document.getElementById("highlights").innerHTML = `<p style="color: red;">${data.error || "Failed to generate highlights!"}</p>`;
+    }
+}
+
+    </script>
+</head>
+<body>
+    <h1>YouTube AI Chat Bot</h1>
+
+    <h2>🎬 Video Recommendations</h2>
+    <input type="text" id="recommend-query" placeholder="Enter search topic">
+    <button onclick="recommendVideos()">Get Recommendations</button>
+    <div id="recommend-results"></div>
+
+    <h2>📥 Download Video</h2>
+    <input type="text" id="video-url" placeholder="Enter YouTube URL">
+    <button onclick="downloadVideo()">Download</button>
+    <div id="download-link"></div>
+
+    <h2>📌 Generate Highlights</h2>
+    <button onclick="generateHighlights()">Generate</button>
+    <div id="highlights"></div>
+</body>
+</html>
